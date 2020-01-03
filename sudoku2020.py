@@ -28,26 +28,18 @@ class box:
 		self.element_columns = []
 		element_rows_temp    = [element.rows for element in elements]
 		element_columns_temp = [element.columns for element in elements]
-		print(self.name)
-		print(self.element_names)
-		print(element_rows_temp)
 
-		for i,elementrows in enumerate(element_rows_temp):
-			for j in elementrows:
-				if j in self.rows:
-					elementrow = j
+		for rows,columns in zip(element_rows_temp,element_columns_temp):
+			for r,c in zip(rows,columns):
+				if r in self.rows and c in self.columns:
+					elementrow = r #possible error: elementrow get assigned value more than once in this loop
+					elementcol = c
 			self.element_rows.append(elementrow)
-		print(self.element_rows)
-		print(element_columns_temp)
-		for i,elementcolumns in enumerate(element_columns_temp):
-			for j in elementcolumns:
-				if j in self.columns:
-					elementcolumn = j
-			self.element_columns.append(elementcolumn)
+			self.element_columns.append(elementcol)
 
 		#self.cells    = self.get_cells(self.rows, self.columns)#may be useful
 		self.element_cells = self.get_cells(self.element_rows, self.element_columns)
-		print()
+
 	def get_cells(self,rows,columns):
 		rows    = [row%3 for row in rows]   #global -> local coordinates
 		columns = [col%3 for col in columns]#global -> local coordinates
@@ -69,15 +61,14 @@ class box:
 		print('box name: ',self.name)
 		print('box rows: ',self.rows)
 		print('box columns: ',self.columns)
-		#print(self.as_box())
+		print(self.as_box())
+		print()
 	
 	def as_box(self):
 		#returns box as numpy array
 		outarray = np.zeros((3,3))
 		for name,i,j in zip(self.element_names,self.element_rows,self.element_columns):
-			print(name,i,j)
-			#outarray[i,j] = name
-		print()
+			outarray[i%3,j%3] = name
 		return outarray
 	
 
@@ -108,8 +99,7 @@ boxes = (box(0,[numbers[1-1],numbers[3-1],numbers[7-1],numbers[8-1]]),
 
 print(as_sudoku(numbers))
 for box in boxes:
-	#box.as_box()
-	print(box.as_box())
+	box.info()
 	
 #algorithm0
 numbers_left = numbers[:]
