@@ -1,6 +1,13 @@
 #!usr/bin/env python3
+'''
+Algorithm : boxwise, for eac number
+Objects   : element/number, box
+Input     : csv, from terminal
+Output    : in terminal
+'''
+
 import numpy as np
-from copy import deepcopy
+#from copy import deepcopy
 
 class element:
 	#a number in sudoku
@@ -97,6 +104,7 @@ def get_box(row,column):
 	return boxname
 
 def from_terminal():
+	#nb : this function is not completely error checked
 	print('Enter numbers one by one, enter zero for absence of number')
 	n_info = (([],[]),([],[]),([],[]),([],[]),([],[]),([],[]),([],[]),([],[]),([],[])) #nine elements
 	b_info = ([],[],[],[],[],[],[],[],[])	#each element list conatins indices of numbers conained in the box
@@ -118,11 +126,42 @@ def from_terminal():
 				n_info[n-1][1].append(j)#columns of number n
 				b_info[b].append(n-1)
 
-	numbers = (element(n,n_info[n-1][0],n_info[n-1][1]) for n in range(1,10)) #n means number (1-9)
-	boxes = (box(n, [numbers[i] for i in b_info[n]]) for n in range(9)) # n is box number (0-8)
+	numbers = [] #n means number (1-9)
+	boxes = [] # n is box number (0-8)
+	for n in range(9):
+		numbers.append(element(n+1,n_info[n][0],n_info[n][1]))
+	for n in range(9):
+		boxes.append(box(n, [numbers[i] for i in b_info[n]]))
+	numbers = tuple(numbers)
+	boxes = tuple(boxes)
 	return numbers, boxes
 
-def cycle(numbers_list):
+def from_csv(filename,delemeter=','):
+	n_info = (([],[]),([],[]),([],[]),([],[]),([],[]),([],[]),([],[]),([],[]),([],[])) #nine elements
+	b_info = ([],[],[],[],[],[],[],[],[])	#each element list conatins indices of numbers conained in the box
+	with open(filename,'r') as f:
+		data = f.readlines()
+		for i in range(9):
+			for j in range(9):
+				b = get_box(i,j)
+				n = int(data[i].split(delemeter)[j])
+				if n != 0:
+					n_info[n-1][0].append(i)#rows of number n
+					n_info[n-1][1].append(j)#columns of number n
+					b_info[b].append(n-1)
+
+	numbers = [] #n means number (1-9)
+	boxes = [] # n is box number (0-8)
+	for n in range(9):
+		numbers.append(element(n+1,n_info[n][0],n_info[n][1]))
+	for n in range(9):
+		boxes.append(box(n, [numbers[i] for i in b_info[n]]))
+	numbers = tuple(numbers)
+	boxes = tuple(boxes)
+	return numbers, boxes
+
+
+def cycle(numbers_list, boxes):
 
 	for num in numbers_list:
 		boxes_to_fill = list({0,1,2,3,4,5,6,7,8}-set(num.boxes))
@@ -157,6 +196,25 @@ def cycle(numbers_list):
 
 	return numbers_list
 
+def issolved(numbers,boxes):
+	#boxwise fill:
+	isboxfill = True
+	for box in boxes:
+		for num in range(1,10):
+			isboxfill = isboxfill and (num in box.element_names)
+	#rowwise fill:
+	isrowfill = True
+	for row in range(9):
+		for num in range(1,10):
+			isrowfill = isrowfill and (row in numbers[num-1].rows)
+	#columnwise fill:
+	iscolfill = True
+	for col in range(9):
+		for num in range(1,10):
+			iscolfill = iscolfill and (col in numbers[num-1].rows)
+
+	return (isboxfill and isrowfill and iscolfill)
+
 #initialise numbers and boxes
 '''
 numbers = (element(1,[1,3,4,5,6],[2,4,6,0,1]),element(2,[0,1,4,5,6,8],[6,5,8,1,4,0]),element(3,[0,2,3,5,7],[1,8,7,2,0]),element(4,[0,4,7,8],[8,5,2,3]),element(5,[0,4,8],[7,0,2]),element(6,[1,2,5,6,7],[6,4,3,5,8]),element(7,[1,2,3,6,7],[8,1,0,2,6]),element(8,[0,6,7],[2,0,3]),element(9,[2,7],[6,1]))	#index of this tuple is same as element.name
@@ -171,18 +229,18 @@ boxes = (box(0,[numbers[1-1],numbers[3-1],numbers[7-1],numbers[8-1]]),
 		box(8,[numbers[6-1],numbers[7-1]])
 		)	#index of this tuple is same as box.name
 '''
-numbers,boxes = from_terminal()
+#numbers,boxes = from_terminal()
+numbers,boxes = from_csv('sudoku_easy_jan2020.csv')
 
 print(as_sudoku(numbers))
-#for box in boxes:
-#	box.info()
+for box in boxes:
+	box.info()
 
 #algorithm0
 numbers_list = numbers
-
-
-		
+	
 while True:
-	cycle(numbers_list) #can speed up code if u remove filled out numbers from the list in every step
+	cycle(numbers_list,boxes) #can speed up code if u remove filled out numbers from the list in every step
 	print(as_sudoku(numbers))
+	print('solved : ',issolved(numbers,boxes))
 	input()
