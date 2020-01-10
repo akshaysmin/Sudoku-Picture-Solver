@@ -1,7 +1,7 @@
 #!usr/bin/env python3
 '''
-Algorithm : boxwise, for eac number
-Objects   : element/number, box
+Algorithm : boxwise & rowwise for each number
+Objects   : element/number, box,row
 Input     : csv, from terminal
 Output    : in terminal
 '''
@@ -24,6 +24,38 @@ class element:
 			boxes.append(boxmap.index((x//3,y//3)))
 		return boxes
 
+class row:
+	def __init__(self, name, elements):
+	#designed so that giving in all elements is same as giving in only elements filled in this row
+		self.name = name
+		self.element_names   = [element.name for element in elements if self.name in element.rows]
+		self.element_columns = []
+		for element in elements:
+			for row,col in zip(element.rows,element.columns):
+				if row == self.name:
+					self.element_columns.append(col)
+	
+	def info(self):
+		print('row name : ',self.name)
+		print('element_names   : ',self.element_names)
+		print('element_columns : ',self.element_columns)
+
+class column:
+	def __init__(self, name, elements):
+	#designed so that giving in all elements is same as giving in only elements filled in this column
+		self.name = name
+		self.element_names = [element.name for element in elements if self.name in element.columns]
+		self.element_rows  = []
+		for element in elements:
+			for row,col in zip(element.rows,element.columns):
+				if col == self.name:
+					self.element_rows.append(row)
+	
+	def info(self):
+		print('row name : ',self.name)
+		print('element_names   : ',self.element_names)
+		print('element_columns : ',self.element_rows)
+
 class box:
 	#small 3x3 box in sudoku
 	def __init__(self, name, elements):#elements is list of element objects in the box
@@ -44,10 +76,7 @@ class box:
 			self.element_rows.append(elementrow)
 			self.element_columns.append(elementcol)
 
-		#self.cells    = self.get_cells(self.rows, self.columns)#may be useful
 		self.element_cells = self.get_cells(self.element_rows, self.element_columns)
-		#print('element_names : ',self.element_names)
-		#print(self.element_cells)
 
 	def get_cells(self,rows,columns):
 		rows    = [row%3 for row in rows]   #global -> local coordinates
@@ -115,7 +144,7 @@ def from_terminal():
 			#n = int(input(f'Row {i},Col {j} : '))
 			while True:
 				try:
-					n = int(input(f'Row {i},Col {j},Box {b} : '))
+					n = int(input('Row {},Col {},Box {} : '.format(i,j,b)))
 					if 0<=n<=9:
 						break
 				except:
@@ -156,18 +185,20 @@ def from_csv(filename,delemeter=','):
 		numbers.append(element(n+1,n_info[n][0],n_info[n][1]))
 	for n in range(9):
 		boxes.append(box(n, [numbers[i] for i in b_info[n]]))
-	numbers = tuple(numbers)
-	boxes = tuple(boxes)
+	numbers = tuple(numbers)#index same as number.name
+	boxes = tuple(boxes)#index same as box.name
 	return numbers, boxes
 
 
-def cycle(numbers_list, boxes):
-
+def cycle(numbers_list, boxes_list, rows_list, columns_list):
+	#core algorithm
 	for num in numbers_list:
 		boxes_to_fill = list({0,1,2,3,4,5,6,7,8}-set(num.boxes))
-
+		rows_to_fill  = list({0,1,2,3,4,5,6,7,8}-set(num.rows))
+		columns_to_fill  = list({0,1,2,3,4,5,6,7,8}-set(num.rows))
+		
 		for boxname in boxes_to_fill:
-			box = boxes[boxname]
+			box = boxes_list[boxname]
 			possible_locations = {0,1,2,3,4,5,6,7,8} - set(box.element_cells)
 
 			for row in box.rows:
@@ -183,6 +214,8 @@ def cycle(numbers_list, boxes):
 
 				loc_to_fill = possible_locations.pop()
 				row_to_fill, column_to_fill = box.get_row_and_column(loc_to_fill, box.name)
+				row = rows_list[row_to_fill]
+				column = columns_list[column_to_fill]
 
 				#update datastructures/sudoku
 				num.rows.append(row_to_fill)
@@ -193,7 +226,72 @@ def cycle(numbers_list, boxes):
 				box.element_rows.append(row_to_fill)
 				box.element_columns.append(column_to_fill)
 				box.element_cells.append(loc_to_fill)
+				
+				row.element_names.append(num.name)
+				row.element_columns.append(column_to_fill)
+				
+				column.element_names.append(num.name)
+				column.element_rows.append(row_to_fill)
+				
+		
+		for rowname in rows_to_fill:
+			row = rows_list[rowname]
+			possible_columns = {0,1,2,3,4,5,6,7,8} - set(row.element_columns)#eliminated locations which already have elements
+			columns_to_check = list(possible_columns)
+			
+			for col in columns_to_check:
+				if num.name in columns_list[col].element_names:
+					possible_columns -= {col}
+			
+			if len(possible_columns) == 1:
+				row_to_fill = row.name
+				column_to_fill = possible_columns.pop()
+				boxname = get_box(row_to_fill, column_to_fill)
+				box = boxes_list[boxname]
+				
+				#update datastructures/sudoku
+				num.rows.append(row_to_fill)
+				num.columns.append(column_to_fill)
+				num.boxes.append(boxname)
 
+				box.element_names.append(num.name)
+				box.element_rows.append(row_to_fill)
+				box.element_columns.append(column_to_fill)
+				#box.element_cells.append(loc_to_fill)
+				box.element_cells = box.get_cells(box.element_rows, box.element_columns)
+				
+				row.element_names.append(num.name)
+				row.element_columns.append(column_to_fill)
+		
+		for colname in columns_to_fill:
+			column = columns_list[colname]
+			possible_rows = {0,1,2,3,4,5,6,7,8} - set(column.element_rows)#eliminated locations which already have elements
+			rows_to_check = list(possible_rows)
+			
+			for row in rows_to_check:
+				if num.name in rows_list[row].element_names:
+					possible_rows -= {row}
+			
+			if len(possible_rows) == 1:
+				row_to_fill = possible_rows.pop()
+				column_to_fill = column.name
+				boxname = get_box(row_to_fill, column_to_fill)
+				box = boxes_list[boxname]
+				
+				#update datastructures/sudoku
+				num.rows.append(row_to_fill)
+				num.columns.append(column_to_fill)
+				num.boxes.append(boxname)
+
+				box.element_names.append(num.name)
+				box.element_rows.append(row_to_fill)
+				box.element_columns.append(column_to_fill)
+				#box.element_cells.append(loc_to_fill)
+				box.element_cells = box.get_cells(box.element_rows, box.element_columns)
+				
+				column.element_names.append(num.name)
+				column.element_rows.append(row_to_fill)
+		
 	return numbers_list
 
 def issolved(numbers,boxes):
@@ -229,18 +327,32 @@ boxes = (box(0,[numbers[1-1],numbers[3-1],numbers[7-1],numbers[8-1]]),
 		box(8,[numbers[6-1],numbers[7-1]])
 		)	#index of this tuple is same as box.name
 '''
-#numbers,boxes = from_terminal()
-numbers,boxes = from_csv('sudoku_easy_jan2020.csv')
 
+#numbers,boxes = from_terminal()
+numbers,boxes = from_csv('sudoku_hard_jan10_2020.csv')
+rows = tuple(row(i,numbers) for i in range(9))#an attempt at tuple comprehension, maybe a better way exists
+columns = tuple(column(i,numbers) for i in range(9))#index of these tuples is same as their row.name and column.name
+
+#input verification
 print(as_sudoku(numbers))
 for box in boxes:
 	box.info()
+for row in rows:
+	row.info()
+for col in columns:
+	col.info()
+print(as_sudoku(numbers))
 
 #algorithm0
 numbers_list = numbers
-	
+num_steps = 0
 while True:
-	cycle(numbers_list,boxes) #can speed up code if u remove filled out numbers from the list in every step
+	cycle(numbers_list,boxes,rows,columns) #can speed up code if u remove filled out numbers from the list in every step
 	print(as_sudoku(numbers))
-	print('solved : ',issolved(numbers,boxes))
+	num_steps += 1
+	status = issolved(numbers,boxes)
+	print('num_steps : ',num_steps,'\nsolved : ',status)
+	if status:
+		break
 	input()
+
