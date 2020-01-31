@@ -165,7 +165,7 @@ def from_terminal():
 	boxes = tuple(boxes)
 	return numbers, boxes
 
-def from_csv(filename,delemeter=','):
+def from_csv(filename,delimiter=','):
 	n_info = (([],[]),([],[]),([],[]),([],[]),([],[]),([],[]),([],[]),([],[]),([],[])) #nine elements
 	b_info = ([],[],[],[],[],[],[],[],[])	#each element list conatins indices of numbers conained in the box
 	with open(filename,'r') as f:
@@ -173,7 +173,7 @@ def from_csv(filename,delemeter=','):
 		for i in range(9):
 			for j in range(9):
 				b = get_box(i,j)
-				n = int(data[i].split(delemeter)[j])
+				n = int(data[i].split(delimiter)[j])
 				if n != 0:
 					n_info[n-1][0].append(i)#rows of number n
 					n_info[n-1][1].append(j)#columns of number n
@@ -262,7 +262,7 @@ def cycle(numbers_list, boxes_list, rows_list, columns_list):
 				
 				row.element_names.append(num.name)
 				row.element_columns.append(column_to_fill)
-
+			print('num {} after boxes, after row {}:'.format(num.name,rowname), row.info())
 		columns_to_fill  = list({0,1,2,3,4,5,6,7,8}-set(num.columns))
 		for colname in columns_to_fill:
 			column = columns_list[colname]
@@ -318,9 +318,9 @@ def check_rc(rows,columns):
 	rowwise = True
 	colwise = True
 	for row in rows:
-		rowwise = rowwise and len(np.unique(row.element_names))==9 and len(np.unique(row.element_columns))==9
+		rowwise = rowwise and len(row.element_names)==9 and len(row.element_columns)==9
 		if not rowwise:
-			print(row.name, np.unique(row.element_names),np.unique(row.element_columns))
+			print(row.name, row.element_names,row.element_columns)
 	for col in columns:
 		colwise = colwise and len(np.unique(col.element_names))==9 and len(np.unique(col.element_rows))==9
 	
@@ -370,4 +370,3 @@ while True:
 	if status:
 		break
 	input()
-	
